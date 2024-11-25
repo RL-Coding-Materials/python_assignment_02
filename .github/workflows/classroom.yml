@@ -1,0 +1,38 @@
+name: Autograding Tests
+on:
+- push
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Python Test
+      id: python-test
+      uses: classroom-resources/autograding-python-grader@v1
+      with:
+        timeout: 10
+        max-score: 5
+        setup-command: pip install -r requirements.txt
+    - name: Linter
+      id: pylint-test
+      uses: rlalik/autograding-pylint-grader@v1
+      with:
+        timeout: 5
+        max-score: 0
+        setup-command: pip install pylint -r requirements.txt
+        pylint-args: '--disable=C0114,C0116'
+        files: 'zadanie_?/zadanie?.py'
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        PYTHON-TEST_RESULTS: "${{steps.python-test.outputs.result}}"
+        PYLINT-TEST_RESULTS: "${{steps.pylint-test.outputs.result}}"
+      with:
+        runners: python-test,pylint-test
